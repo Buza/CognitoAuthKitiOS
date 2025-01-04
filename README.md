@@ -1,6 +1,6 @@
 # SwiftCognitoAuth
 
-SwiftCognitoAuth provides an easy-to-use interface for managing user authentication using AWS Cognito. It integrates seamlessly with `AWSCognitoIdentityProvider` and includes logging capabilities via the `BLog` package.
+SwiftCognitoAuth is a simple interface for managing user authentication using AWS Cognito.
 
 ## Features
 
