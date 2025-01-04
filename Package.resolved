@@ -1,0 +1,24 @@
+{
+  "originHash" : "68d5cc096d23fcbebc93895ad301bcf71e4bfe3ed1818f111e1b519a29bf44e2",
+  "pins" : [
+    {
+      "identity" : "aws-sdk-ios-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/aws-amplify/aws-sdk-ios-spm",
+      "state" : {
+        "revision" : "ff85374816d07c4ae9b22a2c2839f1b9d4c97cd3",
+        "version" : "2.38.2"
+      }
+    },
+    {
+      "identity" : "blog",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Buza/BLog.git",
+      "state" : {
+        "revision" : "aad912a4c9c5ece35f7b3c3a498664dc9ef1356b",
+        "version" : "1.0.1"
+      }
+    }
+  ],
+  "version" : 3
+}
