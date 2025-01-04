@@ -297,7 +297,7 @@ public class Auth : ObservableObject {
         self.authCoordinator = coordinator
     }
     
-    func signIn(username: String, password: String) async throws -> Bool {
+    public func signIn(username: String, password: String) async throws -> Bool {
         guard let user = getCognitoUser(username: username) else {
             return false
         }
@@ -319,7 +319,7 @@ public class Auth : ObservableObject {
     }
     
     @discardableResult
-    func signOut() throws -> Bool {
+    public func signOut() throws -> Bool {
         guard let user = currentUser() else {
             return false
         }
@@ -328,7 +328,7 @@ public class Auth : ObservableObject {
         return true
     }
     
-    func isUserConfirmed(username: String, completion: @escaping (Bool, Error?) -> Void) {
+    public func isUserConfirmed(username: String, completion: @escaping (Bool, Error?) -> Void) {
         guard let user = getCognitoUser(username: username) else {
             completion(false, nil)
             return
@@ -349,7 +349,7 @@ public class Auth : ObservableObject {
         }
     }
     
-    func confirmSignUp(username: String, confirmationCode: String) async throws -> Bool {
+    public func confirmSignUp(username: String, confirmationCode: String) async throws -> Bool {
         guard let user = getCognitoUser(username: username) else {
             return false
         }
@@ -370,7 +370,7 @@ public class Auth : ObservableObject {
         }
     }
     
-    func confirmSignUp(username: String, confirmationCode: String, completion: @escaping (Bool) -> Void) {
+    public func confirmSignUp(username: String, confirmationCode: String, completion: @escaping (Bool) -> Void) {
         guard let user = getCognitoUser(username: username) else {
             completion(false)
             return
