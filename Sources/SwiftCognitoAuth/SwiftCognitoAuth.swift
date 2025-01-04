@@ -172,7 +172,7 @@ public class Auth : ObservableObject {
         }
     }
     
-    func hasValidatedEmail(username: String, completion: @escaping (Bool, Error?) -> Void) {
+    public func hasValidatedEmail(username: String, completion: @escaping (Bool, Error?) -> Void) {
         guard let user = getCognitoUser(username: username) else {
             completion(false, nil)
             return
@@ -192,7 +192,7 @@ public class Auth : ObservableObject {
         }
     }
     
-    func refreshSessionIfNeeded(completion: @escaping (Bool) -> Void) {
+    public func refreshSessionIfNeeded(completion: @escaping (Bool) -> Void) {
         guard let user = currentUser() else {
             completion(false)
             return
@@ -221,7 +221,7 @@ public class Auth : ObservableObject {
         }
     }
     
-    func validateUser(username: String, confirmationCode: String, completion: @escaping (Bool) -> Void) {
+    public func validateUser(username: String, confirmationCode: String, completion: @escaping (Bool) -> Void) {
         guard let userPool = AWSCognitoIdentityUserPool(forKey: "UserPool")?.getUser(username) else {
             AuthLogger.log("No user available", level: .error)
             completion(false)
@@ -239,7 +239,7 @@ public class Auth : ObservableObject {
         }
     }
     
-    func validateUser(username: String, confirmationCode: String) async throws -> Bool {
+    public func validateUser(username: String, confirmationCode: String) async throws -> Bool {
         guard let userPool = AWSCognitoIdentityUserPool(forKey: "UserPool")?.getUser(username) else {
             AuthLogger.log("No user available", level: .error)
             return false
@@ -256,7 +256,7 @@ public class Auth : ObservableObject {
         }
     }
     
-    func signUp(username: String, email: String, password: String) async throws {
+    public func signUp(username: String, email: String, password: String) async throws {
         
         let (userPool, attributes) = getUserPoolAndAttributes(email: email)
         guard let userPool = userPool, let attributes = attributes else { return }
@@ -272,7 +272,7 @@ public class Auth : ObservableObject {
         }
     }
     
-    func signUp(username: String, email: String, password: String, completion: @escaping (Bool) -> Void) {
+    public func signUp(username: String, email: String, password: String, completion: @escaping (Bool) -> Void) {
         
         let (userPool, attributes) = getUserPoolAndAttributes(email: email)
         guard let userPool = userPool, let attributes = attributes else { return }
