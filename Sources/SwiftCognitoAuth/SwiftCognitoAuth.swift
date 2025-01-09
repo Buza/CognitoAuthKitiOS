@@ -20,10 +20,10 @@ struct AuthLogger {
     }
 }
 
-class AuthCoordinator: NSObject, AWSCognitoIdentityInteractiveAuthenticationDelegate {
+final class AuthCoordinator: NSObject, AWSCognitoIdentityInteractiveAuthenticationDelegate, Sendable {
     
-    var username : String?
-    var password : String?
+    let username : String?
+    let password : String?
     
     init(username: String? = nil, password: String? = nil) {
         self.username = username
@@ -35,10 +35,10 @@ class AuthCoordinator: NSObject, AWSCognitoIdentityInteractiveAuthenticationDele
     }
 }
 
-class PasswordAuthHandler: NSObject, AWSCognitoIdentityPasswordAuthentication {
+final class PasswordAuthHandler: NSObject, AWSCognitoIdentityPasswordAuthentication, Sendable {
     
-    var username : String?
-    var password : String?
+    let username : String?
+    let password : String?
     
     init(username: String? = nil, password: String? = nil) {
         self.username = username
@@ -71,8 +71,9 @@ class PasswordAuthHandler: NSObject, AWSCognitoIdentityPasswordAuthentication {
     }
 }
 
-public class Auth : ObservableObject {
+final public class Auth : ObservableObject, @unchecked Sendable {
     
+    private let lock = NSLock()
     var authCoordinator : AuthCoordinator?
     
     public init(region: AWSRegionType = .USEast1) {
@@ -291,6 +292,8 @@ public class Auth : ObservableObject {
     }
     
     public func setAuthCoordinator(username:String, password:String) {
+        lock.lock()
+        defer { lock.unlock() }
         let userPool = AWSCognitoIdentityUserPool(forKey: "UserPool")
         let coordinator = AuthCoordinator(username: username, password: password)
         userPool?.delegate = coordinator
