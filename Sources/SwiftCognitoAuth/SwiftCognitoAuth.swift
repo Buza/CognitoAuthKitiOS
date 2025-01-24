@@ -135,6 +135,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         return result
     }
     
+    @discardableResult
     public func refreshSessionIfNeeded() async throws -> Bool {
         guard let user = currentUser() else {
             return false
