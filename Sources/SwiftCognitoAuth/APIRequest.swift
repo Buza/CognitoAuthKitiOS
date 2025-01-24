@@ -80,7 +80,6 @@ public struct APIRequest {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
 
-            // Logging the response
             if let httpResponse = response as? HTTPURLResponse {
                 APIRequestLogger.log("Response status code: \(httpResponse.statusCode)")
             }
@@ -88,8 +87,8 @@ public struct APIRequest {
                 APIRequestLogger.log("Response body: \(responseString)")
             }
 
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                APIRequestLogger.log("Request failed with a non-200 status code.", level: .error)
+            guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                APIRequestLogger.log("Request failed with a non-2xx status code.", level: .error)
                 throw URLError(.badServerResponse)
             }
 
