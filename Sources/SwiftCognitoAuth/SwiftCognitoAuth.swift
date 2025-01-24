@@ -71,32 +71,31 @@ final class PasswordAuthHandler: NSObject, AWSCognitoIdentityPasswordAuthenticat
     }
 }
 
-final public class Auth : ObservableObject, @unchecked Sendable {
-    
+final public class Auth: ObservableObject, @unchecked Sendable {
+
     private let lock = NSLock()
-    var authCoordinator : AuthCoordinator?
-    
-    public init(region: AWSRegionType = .USEast1) {
+    var authCoordinator: AuthCoordinator?
+
+    public init(region: AWSRegionType = .USEast1, poolClientId: String? = nil, poolId: String? = nil) {
         let serviceConfiguration = AWSServiceConfiguration(
             region: region,
             credentialsProvider: nil
         )
-        
-        let poolClientId = ProcessInfo.processInfo.environment["POOL_CLIENT_ID"]!
-        let poolId = ProcessInfo.processInfo.environment["POOL_ID"]!
-        
+
+        let clientId = poolClientId ?? ProcessInfo.processInfo.environment["POOL_CLIENT_ID"]!
+        let poolIdentifier = poolId ?? ProcessInfo.processInfo.environment["POOL_ID"]!
+
         let userPoolConfiguration = AWSCognitoIdentityUserPoolConfiguration(
-            clientId: poolClientId, clientSecret: nil,
-            poolId: poolId
+            clientId: clientId, clientSecret: nil,
+            poolId: poolIdentifier
         )
-        
+
         AWSCognitoIdentityUserPool.register(
             with: serviceConfiguration,
             userPoolConfiguration: userPoolConfiguration,
             forKey: "UserPool"
         )
     }
-    
     
     private func getCognitoUser(username: String) -> AWSCognitoIdentityUser? {
         guard let user = AWSCognitoIdentityUserPool(forKey: "UserPool")?.getUser(username) else {
@@ -150,6 +149,14 @@ final public class Auth : ObservableObject, @unchecked Sendable {
         }
     }
     
+    public var idToken: String? {
+        return currentUser()?.getSession().result?.idToken?.tokenString
+    }
+
+    public var accessToken: String? {
+        return currentUser()?.getSession().result?.accessToken?.tokenString
+    }
+
     public func hasValidatedEmail(username: String) async throws -> Bool {
         guard let user = getCognitoUser(username: username) else {
             throw NSError(domain: "AuthError", code: 1,
