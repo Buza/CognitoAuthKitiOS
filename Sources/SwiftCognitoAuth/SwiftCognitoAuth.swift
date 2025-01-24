@@ -20,6 +20,22 @@ struct AuthLogger {
     }
 }
 
+struct APIRequestLogger {
+    nonisolated(unsafe) static let shared = BLog(subsystem: "com.buzamoto.cognitoauth",
+                                                 category: "APIRequest",
+                                                 prefix: "<APIRequest>")
+    static func log(_ message: String, level: LogLevel = .info) {
+        switch level {
+        case .info:
+            shared.pinfo(message)
+        case .error,. warning:
+            shared.perror(message)
+        case .debug:
+            shared.pdebug(message)
+        }
+    }
+}
+
 final class AuthCoordinator: NSObject, AWSCognitoIdentityInteractiveAuthenticationDelegate, Sendable {
     
     let username : String?

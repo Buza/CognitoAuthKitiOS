@@ -48,11 +48,13 @@ public struct APIRequest {
 
     public func execute() async throws -> Data {
         guard let url = buildURL() else {
+            APIRequestLogger.log("Failed to build URL for request.", level: .error)
             throw URLError(.badURL)
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
+
         headers.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)
         }
@@ -63,12 +65,34 @@ public struct APIRequest {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw URLError(.badServerResponse)
+        APIRequestLogger.log("Executing \(method.rawValue) request to \(url.absoluteString)")
+        if let headers = request.allHTTPHeaderFields {
+            APIRequestLogger.log("Request headers: \(headers)")
+        }
+        if let body = body, let bodyString = String(data: body, encoding: .utf8) {
+            APIRequestLogger.log("Request body: \(bodyString)")
         }
 
-        return data
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            // Logging the response
+            if let httpResponse = response as? HTTPURLResponse {
+                APIRequestLogger.log("Response status code: \(httpResponse.statusCode)")
+            }
+            if let responseString = String(data: data, encoding: .utf8) {
+                APIRequestLogger.log("Response body: \(responseString)")
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                APIRequestLogger.log("Request failed with a non-200 status code.", level: .error)
+                throw URLError(.badServerResponse)
+            }
+
+            return data
+        } catch {
+            APIRequestLogger.log("Request failed with error: \(error.localizedDescription)", level: .error)
+            throw error
+        }
     }
 }
