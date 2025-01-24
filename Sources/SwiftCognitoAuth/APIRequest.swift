@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum HTTPMethod: String {
+public enum HTTPMethod: String, Sendable {
     case GET, POST, PUT, DELETE
 }
 
@@ -18,7 +18,7 @@ public enum APIEnvironment: String {
 
 public protocol APIPathProtocol: RawRepresentable where RawValue == String {}
 
-public struct APIRequest {
+public struct APIRequest: Sendable {
     public let baseURL: URL
     public let path: String
     public let method: HTTPMethod
