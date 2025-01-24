@@ -60,8 +60,12 @@ public struct APIRequest {
         }
 
         if let token = auth.idToken {
+            APIRequestLogger.log("Authorization token: Bearer \(token)")
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else {
+            APIRequestLogger.log("Authorization token is missing", level: .error)
         }
+        
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
 
