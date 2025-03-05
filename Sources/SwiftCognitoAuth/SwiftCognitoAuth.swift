@@ -135,11 +135,18 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         return result
     }
     
-    public var userId: String? {
+    public var cognitoUserId: String? {
         guard let user = currentUser() else {
             return nil
         }
         return user.getSession().result?.idToken?.tokenClaims["sub"] as? String
+    }
+    
+    public var username: String? {
+        guard let user = currentUser() else {
+            return nil
+        }
+        return user.username
     }
     
     @discardableResult
