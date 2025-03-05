@@ -135,6 +135,13 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         return result
     }
     
+    public var userId: String? {
+        guard let user = currentUser() else {
+            return nil
+        }
+        return user.getSession().result?.idToken?.tokenClaims["sub"] as? String
+    }
+    
     @discardableResult
     public func refreshSessionIfNeeded() async throws -> Bool {
         guard let user = currentUser() else {
