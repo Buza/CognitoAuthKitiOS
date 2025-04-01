@@ -431,6 +431,74 @@ final public class Auth: ObservableObject, @unchecked Sendable {
 }
 
 extension Auth {
+    public func forgotPassword(username: String, completion: @escaping (Bool, Error?) -> Void) {
+        guard let user = getCognitoUser(username: username) else {
+            completion(false, NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey:"User not found"]))
+            return
+        }
+        user.forgotPassword().continueWith { task in
+            if let error = task.error {
+                AuthLogger.log("Forgot password error: \(error.localizedDescription)", level: .error)
+                completion(false, error)
+            } else {
+                completion(true, nil)
+            }
+            return nil
+        }
+    }
+
+    public func confirmForgotPassword(username: String, newPassword: String, confirmationCode: String, completion: @escaping (Bool, Error?) -> Void) {
+        guard let user = getCognitoUser(username: username) else {
+            completion(false, NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey:"User not found"]))
+            return
+        }
+        user.confirmForgotPassword(confirmationCode, password: newPassword).continueWith { task in
+            if let error = task.error {
+                AuthLogger.log("Confirm forgot password error: \(error.localizedDescription)", level: .error)
+                completion(false, error)
+            } else {
+                completion(true, nil)
+            }
+            return nil
+        }
+    }
+
+    public func forgotPassword(username: String) async throws {
+        guard let user = getCognitoUser(username: username) else {
+            throw NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey:"User not found"])
+        }
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            user.forgotPassword().continueWith { task in
+                if let error = task.error {
+                    AuthLogger.log("Forgot password error: \(error.localizedDescription)", level: .error)
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+                return nil
+            }
+        }
+    }
+
+    public func confirmForgotPassword(username: String, newPassword: String, confirmationCode: String) async throws {
+        guard let user = getCognitoUser(username: username) else {
+            throw NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey:"User not found"])
+        }
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            user.confirmForgotPassword(confirmationCode, password: newPassword).continueWith { task in
+                if let error = task.error {
+                    AuthLogger.log("Confirm forgot password error: \(error.localizedDescription)", level: .error)
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+                return nil
+            }
+        }
+    }
+}
+
+extension Auth {
     
     private func currentUser() -> AWSCognitoIdentityUser? {
         return AWSCognitoIdentityUserPool(forKey: "UserPool")?.currentUser()
