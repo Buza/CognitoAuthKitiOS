@@ -1,5 +1,9 @@
-
+//
+//  SwiftCognitoAuth.swift
 //  SwiftCognitoAuth
+//
+//  Kyle Buza (2024).
+//
 
 import BLog
 import AWSCognitoIdentityProvider
@@ -14,7 +18,7 @@ struct AuthLogger {
             shared.pinfo(message)
         case .error,. warning:
             shared.perror(message)
-        case .debug:
+        case .debug: 
             shared.pdebug(message)
         }
     }
@@ -91,19 +95,17 @@ final public class Auth: ObservableObject, @unchecked Sendable {
 
     private let lock = NSLock()
     var authCoordinator: AuthCoordinator?
-
-    public init(region: AWSRegionType = .USEast1, poolClientId: String? = nil, poolId: String? = nil) {
+    private var sessionStore: CognitoSessionStore?
+    
+    public init(region: AWSRegionType = .USEast1, poolClientId: String, poolId: String) {
         let serviceConfiguration = AWSServiceConfiguration(
             region: region,
             credentialsProvider: nil
         )
 
-        let clientId = poolClientId ?? ProcessInfo.processInfo.environment["POOL_CLIENT_ID"]!
-        let poolIdentifier = poolId ?? ProcessInfo.processInfo.environment["POOL_ID"]!
-
         let userPoolConfiguration = AWSCognitoIdentityUserPoolConfiguration(
-            clientId: clientId, clientSecret: nil,
-            poolId: poolIdentifier
+            clientId: poolClientId, clientSecret: nil,
+            poolId: poolId
         )
 
         AWSCognitoIdentityUserPool.register(
@@ -133,6 +135,13 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         
         let result = session.accessToken?.tokenString.isEmpty == false
         return result
+    }
+    
+    private func cognitoUser(username: String) -> AWSCognitoIdentityUser? {
+        AWSCognitoIdentityUserPool(forKey: "UserPool")?.getUser(username)
+    }
+    private func currentUser() -> AWSCognitoIdentityUser? {
+        AWSCognitoIdentityUserPool(forKey: "UserPool")?.currentUser()
     }
     
     public var cognitoUserId: String? {
@@ -180,14 +189,11 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         }
     }
     
-    public var idToken: String? {
-        return currentUser()?.getSession().result?.idToken?.tokenString
+    public func tokens() async throws -> (id: String, access: String) {
+        guard let store = sessionStore else { throw AuthError.noTokens }
+        return try await store.tokens()
     }
-
-    public var accessToken: String? {
-        return currentUser()?.getSession().result?.accessToken?.tokenString
-    }
-
+    
     public func hasValidatedEmail(username: String) async throws -> Bool {
         guard let user = getCognitoUser(username: username) else {
             throw NSError(domain: "AuthError", code: 1,
@@ -339,26 +345,31 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     }
     
     public func signIn(username: String, password: String) async throws -> Bool {
-        guard let user = getCognitoUser(username: username) else {
-            return false
-        }
-        
-        self.setAuthCoordinator(username: username, password: password)
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            user.getSession(username, password: password, validationData: nil).continueWith { task in
-                if let error = task.error {
-                    continuation.resume(throwing: error)
-                } else if let _ = task.result {
-                    continuation.resume(returning: true)
-                } else {
-                    continuation.resume(returning: false)
+        guard let user = cognitoUser(username: username) else { return false }
+        setAuthCoordinator(username: username, password: password)
+
+        // 1️⃣ wait until Cognito accepts the credentials
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            user.getSession(username, password: password, validationData: nil)
+                .continueWith { task in
+                    if let error = task.error { cont.resume(throwing: error) }
+                    else { cont.resume(returning: ()) }
+                    return nil
                 }
-                return nil
-            }
         }
+
+        // 2️⃣ create the store *first*
+        let store = CognitoSessionStore(user: user)
+        self.sessionStore = store           // <- visible immediately to tokens()
+
+        // 3️⃣ prime the store (await ensures tokens are ready)
+        try await store.signIn(username: username, password: password)
+
+        AuthLogger.log("User logged in successfully.")
+        return true
     }
-    
+
+
     @discardableResult
     public func signOut() throws -> Bool {
         guard let user = currentUser() else {
@@ -499,11 +510,7 @@ extension Auth {
 }
 
 extension Auth {
-    
-    private func currentUser() -> AWSCognitoIdentityUser? {
-        return AWSCognitoIdentityUserPool(forKey: "UserPool")?.currentUser()
-    }
-    
+
     private func getUserPoolAndAttributes(email: String) -> (AWSCognitoIdentityUserPool?, [AWSCognitoIdentityUserAttributeType]?) {
         guard let userPool = AWSCognitoIdentityUserPool(forKey: "UserPool") else {
             AuthLogger.log("No user pool found.", level: .error)

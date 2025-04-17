@@ -58,12 +58,13 @@ public struct APIRequest: Sendable {
         headers.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)
         }
-
-        if let token = auth.idToken {
-            APIRequestLogger.log("Authorization token: Bearer \(token)")
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        } else {
-            APIRequestLogger.log("Authorization token is missing", level: .error)
+        
+        do {
+            let (idToken, _) = try await auth.tokens()
+            APIRequestLogger.log("Authorization token: Bearer \(idToken)")
+            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+        } catch {
+            APIRequestLogger.log("Authorization token is missing: \(error.localizedDescription)", level: .error)
         }
         
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
