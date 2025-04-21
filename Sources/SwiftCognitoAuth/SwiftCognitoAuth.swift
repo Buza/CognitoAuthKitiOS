@@ -344,11 +344,11 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         self.authCoordinator = coordinator
     }
     
+    @discardableResult
     public func signIn(username: String, password: String) async throws -> Bool {
         guard let user = cognitoUser(username: username) else { return false }
         setAuthCoordinator(username: username, password: password)
 
-        // 1️⃣ wait until Cognito accepts the credentials
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             user.getSession(username, password: password, validationData: nil)
                 .continueWith { task in
@@ -358,17 +358,14 @@ final public class Auth: ObservableObject, @unchecked Sendable {
                 }
         }
 
-        // 2️⃣ create the store *first*
         let store = CognitoSessionStore(user: user)
-        self.sessionStore = store           // <- visible immediately to tokens()
+        self.sessionStore = store
 
-        // 3️⃣ prime the store (await ensures tokens are ready)
         try await store.signIn(username: username, password: password)
 
         AuthLogger.log("User logged in successfully.")
         return true
     }
-
 
     @discardableResult
     public func signOut() throws -> Bool {
