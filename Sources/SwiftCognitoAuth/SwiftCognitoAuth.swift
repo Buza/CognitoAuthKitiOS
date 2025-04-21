@@ -384,6 +384,8 @@ final public class Auth: ObservableObject, @unchecked Sendable {
 
         AWSCognitoIdentityUserPool(forKey: "UserPool")?.clearLastKnownUser()
 
+        AWSCognitoIdentityUserPool(forKey: "UserPool")?.currentUser()?.signOut()
+
         AuthLogger.log("User signed out and local state cleared.")
         return true
     }
