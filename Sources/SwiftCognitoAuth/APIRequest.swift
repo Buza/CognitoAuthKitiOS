@@ -24,6 +24,7 @@ public struct APIRequest: Sendable {
     public let method: HTTPMethod
     public let body: Data?
     public let headers: [String: String]
+    public let queryItems: [URLQueryItem]?
     private let auth: Auth
 
     public init(
@@ -32,7 +33,8 @@ public struct APIRequest: Sendable {
         method: HTTPMethod,
         body: Data? = nil,
         auth: Auth,
-        additionalHeaders: [String: String] = [:]
+        additionalHeaders: [String: String] = [:],
+        queryItems: [URLQueryItem]? = nil
     ) {
         self.baseURL = baseURL
         self.path = path
@@ -40,10 +42,13 @@ public struct APIRequest: Sendable {
         self.body = body
         self.auth = auth
         self.headers = additionalHeaders
+        self.queryItems = queryItems
     }
 
     private func buildURL() -> URL? {
-        return baseURL.appendingPathComponent(path)
+        var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
+        components?.queryItems = queryItems
+        return components?.url
     }
 
     public func execute() async throws -> Data {
@@ -58,7 +63,7 @@ public struct APIRequest: Sendable {
         headers.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)
         }
-        
+
         do {
             let (idToken, _) = try await auth.tokens()
             APIRequestLogger.log("Authorization token: Bearer \(idToken)")
@@ -66,7 +71,7 @@ public struct APIRequest: Sendable {
         } catch {
             APIRequestLogger.log("Authorization token is missing: \(error.localizedDescription)", level: .error)
         }
-        
+
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
 
