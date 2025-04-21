@@ -368,12 +368,19 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     }
 
     @discardableResult
-    public func signOut() throws -> Bool {
+    public func signOut() -> Bool {
         guard let user = currentUser() else {
             return false
         }
+
         user.signOut()
-        AuthLogger.log("User logged out successfully.")
+
+        self.sessionStore = nil
+        self.authCoordinator = nil
+
+        AWSCognitoIdentityUserPool(forKey: "UserPool")?.clearLastKnownUser()
+
+        AuthLogger.log("User signed out and local state cleared.")
         return true
     }
     
