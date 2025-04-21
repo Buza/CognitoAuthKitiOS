@@ -40,7 +40,7 @@ struct AuthTests {
         let signedIn = try await auth.signIn(username: testConfig.validUsername, password: testConfig.validPassword)
         #expect(signedIn)
 
-        let signedOut = try auth.signOut()
+        let signedOut = auth.signOut()
         #expect(signedOut)
     }
 

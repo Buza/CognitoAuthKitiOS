@@ -123,18 +123,22 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         return user
     }
     
-    public func isUserSignedIn() -> Bool {
-        
-        guard let user = currentUser() else {
-            return false
+    public func isUserSignedIn() async -> Bool {
+        guard let user = currentUser() else { return false }
+
+        return await withCheckedContinuation { continuation in
+            user.getSession().continueWith { task in
+                if let session = task.result,
+                   let accessToken = session.accessToken?.tokenString,
+                   !accessToken.isEmpty,
+                   session.expirationTime?.compare(Date()) == .orderedDescending {
+                    continuation.resume(returning: true)
+                } else {
+                    continuation.resume(returning: false)
+                }
+                return nil
+            }
         }
-        
-        guard let session = user.getSession().result else {
-            return false
-        }
-        
-        let result = session.accessToken?.tokenString.isEmpty == false
-        return result
     }
     
     private func cognitoUser(username: String) -> AWSCognitoIdentityUser? {
