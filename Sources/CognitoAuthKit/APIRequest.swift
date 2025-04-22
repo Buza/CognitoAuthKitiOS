@@ -37,6 +37,10 @@ struct APIRequestLogger {
     }
 }
 
+public protocol CognitoIdTokenProvider: Sendable {
+    func getIdToken() async throws -> String
+}
+
 public protocol APIPathProtocol: RawRepresentable where RawValue == String {}
 
 public struct APIRequest: Sendable {
@@ -46,14 +50,14 @@ public struct APIRequest: Sendable {
     public let body: Data?
     public let headers: [String: String]
     public let queryItems: [URLQueryItem]?
-    private let auth: Auth
-
+    let tokenProvider: CognitoIdTokenProvider
+    
     public init(
         baseURL: URL,
         path: String,
         method: HTTPMethod,
         body: Data? = nil,
-        auth: Auth,
+        tokenProvider: CognitoIdTokenProvider,
         additionalHeaders: [String: String] = [:],
         queryItems: [URLQueryItem]? = nil
     ) {
@@ -61,7 +65,7 @@ public struct APIRequest: Sendable {
         self.path = path
         self.method = method
         self.body = body
-        self.auth = auth
+        self.tokenProvider = tokenProvider
         self.headers = additionalHeaders
         self.queryItems = queryItems
     }
@@ -86,7 +90,7 @@ public struct APIRequest: Sendable {
         }
 
         do {
-            let (idToken, _) = try await auth.tokens()
+            let idToken = try await tokenProvider.getIdToken()
             APIRequestLogger.log("Authorization token: Bearer \(idToken)")
             request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
         } catch {

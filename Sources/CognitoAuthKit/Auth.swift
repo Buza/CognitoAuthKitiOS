@@ -177,7 +177,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         }
     }
     
-    public func tokens() async throws -> (id: String, access: String) {
+    private func tokens() async throws -> (id: String, access: String) {
         guard let store = sessionStore else { throw AuthError.noTokens }
         return try await store.tokens()
     }
@@ -513,5 +513,12 @@ extension Auth {
         
         let attributes = [AWSCognitoIdentityUserAttributeType(name: "email", value: email)]
         return (userPool, attributes)
+    }
+}
+
+extension Auth: CognitoIdTokenProvider {
+    public func getIdToken() async throws -> String {
+        let (id, _) = try await tokens()
+        return id
     }
 }
