@@ -7,6 +7,10 @@
 
 import Foundation
 
+public protocol APIGatewayConfiguration {
+    var baseURL: URL { get }
+}
+
 public enum HTTPMethod: String, Sendable {
     case GET, POST, PUT, DELETE
 }

@@ -1,18 +1,17 @@
-// swift-tools-version: 6.0
-
-import PackageDescription
+// swift-tools-version:5.7
 
 import PackageDescription
 
 let package = Package(
-    name: "SwiftCognitoAuth",
+    name: "CognitoAuthKit-iOS",
     platforms: [
-        .iOS(.v15), .macOS(.v12) // Ensure macOS version aligns with your target
+        .iOS(.v15),
+        .macOS(.v12)
     ],
     products: [
         .library(
-            name: "SwiftCognitoAuth",
-            targets: ["SwiftCognitoAuth"]
+            name: "CognitoAuthKit",
+            targets: ["CognitoAuthKit"]
         ),
     ],
     dependencies: [
@@ -21,15 +20,15 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "SwiftCognitoAuth",
+            name: "CognitoAuthKit",
             dependencies: [
                 .product(name: "AWSCognitoIdentityProvider", package: "aws-sdk-ios-spm"),
                 "BLog"
             ]
         ),
         .testTarget(
-            name: "SwiftCognitoAuthTests",
-            dependencies: ["SwiftCognitoAuth"]
+            name: "CognitoAuthKitTests",
+            dependencies: ["CognitoAuthKit"]
         ),
     ]
 )
