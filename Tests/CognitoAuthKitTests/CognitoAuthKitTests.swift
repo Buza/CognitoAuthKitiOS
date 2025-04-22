@@ -1,5 +1,5 @@
 import Testing
-@testable import SwiftCognitoAuth
+@testable import CognitoAuthKit
 
 protocol CognitoTestConfigurable {
     var poolClientId: String { get }

@@ -1,6 +1,6 @@
-# SwiftCognitoAuth
+# CognitoAuthKitiOS
 
-SwiftCognitoAuth is a simple interface for managing user authentication using AWS Cognito.
+CognitoAuthKitiOS is a simple interface for managing user authentication using AWS Cognito on iOS.
 
 ## Features
 
@@ -10,11 +10,11 @@ SwiftCognitoAuth is a simple interface for managing user authentication using AW
 
 ## Installation
 
-Add `SwiftCognitoAuth` to your `Package.swift`:
+Add `CognitoAuthKitiOS` to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Buza/SwiftCognitoAuth.git", from: "1.0.0")
+    .package(url: "https://github.com/Buza/CognitoAuthKitiOS.git", from: "1.0.0")
 ]
 ```
 
@@ -75,5 +75,5 @@ AuthLogger.log("Custom log message", level: .info)
 
 ## License
 
-SwiftCognitoAuth is available under the MIT license.
+CognitoAuthKitiOS is available under the MIT license.
 

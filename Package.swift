@@ -3,32 +3,33 @@
 import PackageDescription
 
 let package = Package(
-    name: "CognitoAuthKit-iOS",
+    name: "CognitoAuthKitiOS",
     platforms: [
-        .iOS(.v15),
-        .macOS(.v12)
+        .iOS(.v15)
     ],
     products: [
         .library(
             name: "CognitoAuthKit",
-            targets: ["CognitoAuthKit"]
+            targets: ["CognitoAuthKitiOS"]
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/aws-amplify/aws-sdk-ios-spm", from: "2.37.0"),
-        .package(url: "https://github.com/Buza/BLog.git", from: "1.0.1"),
+        .package(url: "https://github.com/aws-amplify/aws-sdk-ios-spm", from: "2.40.0"),
+        .package(url: "https://github.com/Buza/BLog.git", from: "1.0.2"),
     ],
     targets: [
         .target(
-            name: "CognitoAuthKit",
+            name: "CognitoAuthKitiOS",
             dependencies: [
                 .product(name: "AWSCognitoIdentityProvider", package: "aws-sdk-ios-spm"),
                 "BLog"
-            ]
+            ],
+            path: "Sources/CognitoAuthKit"
         ),
         .testTarget(
-            name: "CognitoAuthKitTests",
-            dependencies: ["CognitoAuthKit"]
+            name: "CognitoAuthKitiOSTests",
+            dependencies: ["CognitoAuthKitiOS"],
+            path: "Tests/CognitoAuthKitTests"
         ),
     ]
 )

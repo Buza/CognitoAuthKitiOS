@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import BLog
 
 public protocol APIGatewayConfiguration {
     var baseURL: URL { get }
@@ -18,6 +19,22 @@ public enum HTTPMethod: String, Sendable {
 public enum APIEnvironment: String {
     case dev = "dev"
     case prod = "prod"
+}
+
+struct APIRequestLogger {
+    nonisolated(unsafe) static let shared = BLog(subsystem: "com.buzamoto.cognitoauth",
+                                                 category: "APIRequest",
+                                                 prefix: "<APIRequest>")
+    static func log(_ message: String, level: LogLevel = .info) {
+        switch level {
+        case .info:
+            shared.pinfo(message)
+        case .error,. warning:
+            shared.perror(message)
+        case .debug:
+            shared.pdebug(message)
+        }
+    }
 }
 
 public protocol APIPathProtocol: RawRepresentable where RawValue == String {}
