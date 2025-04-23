@@ -1,6 +1,6 @@
 //
 //  SessionStore.swift
-//  SwiftCognitoAuth
+//  CognitoAuthKit
 //
 //  Created by Kyle Buza on 4/17/25.
 //

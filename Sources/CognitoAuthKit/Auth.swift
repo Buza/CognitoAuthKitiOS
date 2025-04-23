@@ -1,6 +1,6 @@
 //
-//  SwiftCognitoAuth.swift
-//  SwiftCognitoAuth
+//  Auth.swift
+//  CognitoAuthKit
 //
 //  Kyle Buza (2024).
 //
@@ -9,9 +9,9 @@ import BLog
 import AWSCognitoIdentityProvider
 
 struct AuthLogger {
-    nonisolated(unsafe) static let shared = BLog(subsystem: "com.buzamoto.cognitoauth",
+    nonisolated(unsafe) static let shared = BLog(subsystem: "com.buzamoto.cognitoauthios",
                                                  category: "Auth",
-                                                 prefix: "<CognitoAuth>")
+                                                 prefix: "<CognitoAuthKitiOS>")
     static func log(_ message: String, level: LogLevel = .info) {
         switch level {
         case .info:

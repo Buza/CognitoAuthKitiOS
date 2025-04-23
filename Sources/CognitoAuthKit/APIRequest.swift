@@ -1,6 +1,6 @@
 //
 //  APIRequest.swift
-//  SwiftCognitoAuth
+//  CognitoAuthKit
 //
 //  Created by Kyle Buza on 1/24/25.
 //
@@ -40,8 +40,6 @@ struct APIRequestLogger {
 public protocol CognitoIdTokenProvider: Sendable {
     func getIdToken() async throws -> String
 }
-
-public protocol APIPathProtocol: RawRepresentable where RawValue == String {}
 
 public struct APIRequest: Sendable {
     public let baseURL: URL
