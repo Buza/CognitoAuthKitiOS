@@ -1,5 +1,15 @@
 {
+  "originHash" : "6b0d2efbd239dacf8c542fb43a0f301e2294628865c0aba5ba9011601d5ea7e9",
   "pins" : [
+    {
+      "identity" : "authapicore",
+      "kind" : "remoteSourceControl",
+      "location" : "git@github.com:Buza/AuthAPICore.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "bd138d37ef59409d3b83f4549febefa364c272f2"
+      }
+    },
     {
       "identity" : "aws-sdk-ios-spm",
       "kind" : "remoteSourceControl",
@@ -14,10 +24,10 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Buza/BLog.git",
       "state" : {
-        "revision" : "71ef8a08aefe924f5bd9862701c015efe7edc1d7",
-        "version" : "1.0.2"
+        "branch" : "main",
+        "revision" : "8f7c21269bb53dfdc506dd76311c51150503f1ba"
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

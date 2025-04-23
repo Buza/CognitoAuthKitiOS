@@ -15,14 +15,16 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/aws-amplify/aws-sdk-ios-spm", from: "2.40.0"),
-        .package(url: "https://github.com/Buza/BLog.git", from: "1.0.2"),
+        .package(url: "https://github.com/Buza/BLog.git", branch: "main"),
+        .package(url: "git@github.com:Buza/AuthAPICore.git", branch: "main"),
     ],
     targets: [
         .target(
             name: "CognitoAuthKitiOS",
             dependencies: [
                 .product(name: "AWSCognitoIdentityProvider", package: "aws-sdk-ios-spm"),
-                "BLog"
+                "BLog",
+                .product(name: "AuthAPICore", package: "AuthAPICore")
             ],
             path: "Sources/CognitoAuthKit"
         ),

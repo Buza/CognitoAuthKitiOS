@@ -9,16 +9,16 @@ import BLog
 import AWSCognitoIdentityProvider
 
 struct AuthLogger {
-    nonisolated(unsafe) static let shared = BLog(subsystem: "com.buzamoto.cognitoauthios",
-                                                 category: "Auth",
-                                                 prefix: "<CognitoAuthKitiOS>")
+    static let shared = BLog(subsystem: "com.buzamoto.cognitoauthios",
+                             category: "Auth",
+                             prefix: "<CognitoAuthKitiOS>")
     static func log(_ message: String, level: LogLevel = .info) {
         switch level {
         case .info:
             shared.pinfo(message)
         case .error,. warning:
             shared.perror(message)
-        case .debug: 
+        case .debug:
             shared.pdebug(message)
         }
     }
@@ -76,7 +76,7 @@ final class PasswordAuthHandler: NSObject, AWSCognitoIdentityPasswordAuthenticat
 }
 
 final public class Auth: ObservableObject, @unchecked Sendable {
-
+    
     private let lock = NSLock()
     var authCoordinator: AuthCoordinator?
     private var sessionStore: CognitoSessionStore?
@@ -86,12 +86,12 @@ final public class Auth: ObservableObject, @unchecked Sendable {
             region: region,
             credentialsProvider: nil
         )
-
+        
         let userPoolConfiguration = AWSCognitoIdentityUserPoolConfiguration(
             clientId: poolClientId, clientSecret: nil,
             poolId: poolId
         )
-
+        
         AWSCognitoIdentityUserPool.register(
             with: serviceConfiguration,
             userPoolConfiguration: userPoolConfiguration,
@@ -109,7 +109,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     
     public func isUserSignedIn() async -> Bool {
         guard let user = currentUser() else { return false }
-
+        
         return await withCheckedContinuation { continuation in
             user.getSession().continueWith { task in
                 if let session = task.result,
@@ -336,7 +336,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     public func signIn(username: String, password: String) async throws -> Bool {
         guard let user = cognitoUser(username: username) else { return false }
         setAuthCoordinator(username: username, password: password)
-
+        
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             user.getSession(username, password: password, validationData: nil)
                 .continueWith { task in
@@ -345,31 +345,31 @@ final public class Auth: ObservableObject, @unchecked Sendable {
                     return nil
                 }
         }
-
+        
         let store = CognitoSessionStore(user: user)
         self.sessionStore = store
-
+        
         try await store.signIn(username: username, password: password)
-
+        
         AuthLogger.log("User logged in successfully.")
         return true
     }
-
+    
     @discardableResult
     public func signOut() -> Bool {
         guard let user = currentUser() else {
             return false
         }
-
+        
         user.signOut()
-
+        
         self.sessionStore = nil
         self.authCoordinator = nil
-
+        
         AWSCognitoIdentityUserPool(forKey: "UserPool")?.clearLastKnownUser()
-
+        
         AWSCognitoIdentityUserPool(forKey: "UserPool")?.currentUser()?.signOut()
-
+        
         AuthLogger.log("User signed out and local state cleared.")
         return true
     }
@@ -451,7 +451,7 @@ extension Auth {
             return nil
         }
     }
-
+    
     public func confirmForgotPassword(username: String, newPassword: String, confirmationCode: String, completion: @escaping (Bool, Error?) -> Void) {
         guard let user = getCognitoUser(username: username) else {
             completion(false, NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey:"User not found"]))
@@ -467,7 +467,7 @@ extension Auth {
             return nil
         }
     }
-
+    
     public func forgotPassword(username: String) async throws {
         guard let user = getCognitoUser(username: username) else {
             throw NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey:"User not found"])
@@ -484,7 +484,7 @@ extension Auth {
             }
         }
     }
-
+    
     public func confirmForgotPassword(username: String, newPassword: String, confirmationCode: String) async throws {
         guard let user = getCognitoUser(username: username) else {
             throw NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey:"User not found"])
@@ -504,7 +504,7 @@ extension Auth {
 }
 
 extension Auth {
-
+    
     private func getUserPoolAndAttributes(email: String) -> (AWSCognitoIdentityUserPool?, [AWSCognitoIdentityUserAttributeType]?) {
         guard let userPool = AWSCognitoIdentityUserPool(forKey: "UserPool") else {
             AuthLogger.log("No user pool found.", level: .error)
