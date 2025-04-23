@@ -25,10 +25,6 @@ struct APIRequestLogger {
     }
 }
 
-public protocol CognitoIdTokenProvider: Sendable {
-    func getIdToken() async throws -> String
-}
-
 public struct APIRequest: Sendable, APIExecutor {
     public let baseURL: URL
     public let tokenProvider: CognitoIdTokenProvider
