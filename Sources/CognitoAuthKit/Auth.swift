@@ -6,6 +6,7 @@
 //
 
 import BLog
+import AuthAPICore
 import AWSCognitoIdentityProvider
 
 struct AuthLogger {
