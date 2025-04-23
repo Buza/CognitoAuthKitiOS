@@ -17,6 +17,13 @@ public struct APIRequestPayload {
     public let method: HTTPMethod
     public let body: Data?
     public let queryItems: [URLQueryItem]?
+    
+    public init(path: String, method: HTTPMethod, body: Data?, queryItems: [URLQueryItem]?) {
+        self.path = path
+        self.method = method
+        self.body = body
+        self.queryItems = queryItems
+    }
 }
 
 public protocol APIGatewayConfiguration {
