@@ -1,5 +1,5 @@
 import Testing
-@testable import CognitoAuthKit
+@testable import CognitoAuthKitiOS
 
 protocol CognitoTestConfigurable {
     var poolClientId: String { get }
@@ -16,38 +16,35 @@ struct CognitoTestConfigDefault : CognitoTestConfigurable {
 }
 
 struct AuthTests {
-    
-    let testConfig : CognitoTestConfigurable = CognitoTestConfigDefault()
+
+    let testConfig: CognitoTestConfigurable = CognitoTestConfigDefault()
 
     let invalidUsername = "invalid-xxx"
     let invalidPassword = "wrongPassword123"
 
     private func getAuth() -> Auth {
-        return Auth(poolClientId: testConfig.poolClientId, poolId: testConfig.poolId)
+        Auth(poolClientId: testConfig.poolClientId, poolId: testConfig.poolId)
     }
-    
+
     @Test func testSignIn() async throws {
         let auth = getAuth()
         let signedIn = try await auth.signIn(username: testConfig.validUsername, password: testConfig.validPassword)
         #expect(signedIn)
-        let (idToken, accessToken) = try await auth.tokens()
-        #expect(!accessToken.isEmpty)
-        #expect(!idToken.isEmpty)
+        let token = try await auth.getIdToken()
+        #expect(!token.isEmpty)
     }
 
     @Test func testSignOut() async throws {
         let auth = getAuth()
         let signedIn = try await auth.signIn(username: testConfig.validUsername, password: testConfig.validPassword)
         #expect(signedIn)
-
-        let signedOut = auth.signOut()
-        #expect(signedOut)
+        auth.signOut()
     }
 
     @Test func testSignInFailsWithInvalidCredentials() async throws {
         let auth = getAuth()
         do {
-            let _ = try await auth.signIn(username: invalidUsername, password: invalidPassword)
+            _ = try await auth.signIn(username: invalidUsername, password: invalidPassword)
             preconditionFailure("Expected sign-in to fail with invalid credentials")
         } catch {
             print("Sign-in failed as expected: \(error)")
