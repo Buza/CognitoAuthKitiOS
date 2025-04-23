@@ -18,7 +18,7 @@ public struct APIRequestPayload {
     public let body: Data?
     public let queryItems: [URLQueryItem]?
     
-    public init(path: String, method: HTTPMethod = .GET, body: Data?, queryItems: [URLQueryItem]?) {
+    public init(path: String, method: HTTPMethod = .GET, body: Data? = nil, queryItems: [URLQueryItem]? = nil) {
         self.path = path
         self.method = method
         self.body = body
