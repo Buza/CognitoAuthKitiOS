@@ -55,7 +55,7 @@ public struct APIRequest: Sendable {
     public init(
         baseURL: URL,
         path: String,
-        method: HTTPMethod,
+        method: HTTPMethod = .GET,
         body: Data? = nil,
         tokenProvider: CognitoIdTokenProvider,
         additionalHeaders: [String: String] = [:],
