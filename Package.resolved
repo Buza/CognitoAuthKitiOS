@@ -1,5 +1,5 @@
 {
-  "originHash" : "6b0d2efbd239dacf8c542fb43a0f301e2294628865c0aba5ba9011601d5ea7e9",
+  "originHash" : "17daee6b8f331b729e4a193077f32fbbc77d44b18818ccf77619734b2cc6778e",
   "pins" : [
     {
       "identity" : "authapicore",
@@ -7,7 +7,7 @@
       "location" : "git@github.com:Buza/AuthAPICore.git",
       "state" : {
         "branch" : "main",
-        "revision" : "9c9ee3a0be6976e3aa9c69d1097533f32975fcbb"
+        "revision" : "0b083e400567f21fad1718080a4ab8e71b130714"
       }
     },
     {
@@ -25,7 +25,7 @@
       "location" : "https://github.com/Buza/BLog.git",
       "state" : {
         "branch" : "main",
-        "revision" : "8f7c21269bb53dfdc506dd76311c51150503f1ba"
+        "revision" : "ea29fd792f76604876904b65e195d5a1cb607e40"
       }
     }
   ],

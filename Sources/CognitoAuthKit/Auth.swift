@@ -226,12 +226,17 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         }
     }
     
+    private func createSessionStore(for user: AWSCognitoIdentityUser) {
+        let store = CognitoSessionStore(user: user)
+        self.sessionStore = store
+    }
+    
     public func refreshSessionIfNeeded(completion: @escaping (Bool) -> Void) {
         guard let user = currentUser() else {
             completion(false)
             return
         }
-        
+
         user.getSession().continueWith { task in
             if let error = task.error {
                 AuthLogger.log("Error getting session: \(error.localizedDescription)", level: .error)
@@ -242,6 +247,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
                         AuthLogger.log("Failed to refresh session: \(refreshError.localizedDescription)", level: .error)
                         completion(false)
                     } else {
+                        self.createSessionStore(for: user)
                         AuthLogger.log("Session refreshed successfully")
                         completion(true)
                     }
@@ -291,37 +297,44 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     }
     
     public func signUp(username: String, email: String, password: String) async throws {
-        
         let (userPool, attributes) = getUserPoolAndAttributes(email: email)
         guard let userPool = userPool, let attributes = attributes else { return }
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            userPool.signUp(username, password: password, userAttributes: attributes, validationData: nil).continueWith { task in
-                if let error = task.error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: ())
+
+        let user = userPool.getUser(username)
+        self.setAuthCoordinator(username: username, password: password)
+        self.createSessionStore(for: user)
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            userPool.signUp(username, password: password, userAttributes: attributes, validationData: nil)
+                .continueWith { task in
+                    if let error = task.error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume(returning: ())
+                    }
                 }
-            }
         }
     }
     
     public func signUp(username: String, email: String, password: String, completion: @escaping (Bool) -> Void) {
-        
         let (userPool, attributes) = getUserPoolAndAttributes(email: email)
         guard let userPool = userPool, let attributes = attributes else { return }
-        
-        userPool.signUp(username, password: password, userAttributes: attributes, validationData: nil).continueWith { task in
-            if let error = task.error {
-                AuthLogger.log("Sign up error: \(error.localizedDescription)", level: .error)
-                completion(false)
-            } else {
-                self.setAuthCoordinator(username: username, password: password)
-                AuthLogger.log("Sign up successful")
-                completion(true)
+
+        let user = userPool.getUser(username)
+
+        userPool.signUp(username, password: password, userAttributes: attributes, validationData: nil)
+            .continueWith { task in
+                if let error = task.error {
+                    AuthLogger.log("Sign up error: \(error.localizedDescription)", level: .error)
+                    completion(false)
+                } else {
+                    self.setAuthCoordinator(username: username, password: password)
+                    self.createSessionStore(for: user)
+                    AuthLogger.log("Sign up successful")
+                    completion(true)
+                }
+                return nil
             }
-            return nil
-        }
     }
     
     public func setAuthCoordinator(username:String, password:String) {
@@ -347,10 +360,9 @@ final public class Auth: ObservableObject, @unchecked Sendable {
                 }
         }
         
-        let store = CognitoSessionStore(user: user)
-        self.sessionStore = store
+        self.createSessionStore(for: user)
         
-        try await store.signIn(username: username, password: password)
+        try await self.sessionStore!.signIn(username: username, password: password)
         
         AuthLogger.log("User logged in successfully.")
         return true
