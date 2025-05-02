@@ -152,8 +152,8 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         guard let user = currentUser() else {
             return false
         }
-        
-        return try await withCheckedThrowingContinuation { continuation in
+
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
             user.getSession().continueWith { task in
                 if let error = task.error {
                     AuthLogger.log("Error calling API: \(error.localizedDescription)", level: .error)
@@ -164,6 +164,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
                             AuthLogger.log("Failed to refresh session: \(refreshError.localizedDescription)", level: .error)
                             continuation.resume(returning: false)
                         } else {
+                            self.createSessionStore(for: user)
                             AuthLogger.log("Session refreshed successfully")
                             continuation.resume(returning: true)
                         }
