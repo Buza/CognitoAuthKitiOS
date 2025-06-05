@@ -56,6 +56,10 @@ public struct APIRequest: Sendable, APIExecutor {
         request.httpMethod = payload.method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        let requestURLString = url.absoluteString
+        
+        APIRequestLogger.log("Begin request: \(requestURLString)")
+        
         additionalHeaders.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)
         }
@@ -93,6 +97,8 @@ public struct APIRequest: Sendable, APIExecutor {
             APIRequestLogger.log("Request failed with a non-2xx status code.", level: .error)
             throw URLError(.badServerResponse)
         }
+        
+        APIRequestLogger.log("End request: \(requestURLString)")
         
         return data
     }
