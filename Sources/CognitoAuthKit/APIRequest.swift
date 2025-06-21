@@ -49,16 +49,12 @@ public struct APIRequest: Sendable, APIExecutor {
     public func execute(request payload: APIRequestPayload) async throws -> Data {
         guard let url = buildURL(path: payload.path, queryItems: payload.queryItems) else {
             APIRequestLogger.log("Failed to build URL for request.", level: .error)
-            throw URLError(.badURL)
+            throw APIError.invalidURL
         }
         
         var request = URLRequest(url: url)
         request.httpMethod = payload.method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let requestURLString = url.absoluteString
-        
-        APIRequestLogger.log("Begin request: \(requestURLString)")
         
         additionalHeaders.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)
@@ -77,6 +73,7 @@ public struct APIRequest: Sendable, APIExecutor {
             APIRequestLogger.log("Authorization token: Bearer \(idToken)")
         } catch {
             APIRequestLogger.log("Authorization token is missing: \(error.localizedDescription)", level: .error)
+            throw APIError.authenticationFailed(error)
         }
         
         APIRequestLogger.log("Executing \(payload.method.rawValue) request to \(url.absoluteString)")
@@ -86,19 +83,21 @@ public struct APIRequest: Sendable, APIExecutor {
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        if let httpResponse = response as? HTTPURLResponse {
-            APIRequestLogger.log("Response status code: \(httpResponse.statusCode)")
+        guard let httpResponse = response as? HTTPURLResponse else {
+            APIRequestLogger.log("Invalid response received.", level: .error)
+            throw APIError.networkError(URLError(.badServerResponse))
         }
+        
+        APIRequestLogger.log("Response status code: \(httpResponse.statusCode)")
         if let responseString = String(data: data, encoding: .utf8) {
             APIRequestLogger.log("Response body: \(responseString)")
         }
         
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            APIRequestLogger.log("Request failed with a non-2xx status code.", level: .error)
-            throw URLError(.badServerResponse)
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let message = String(data: data, encoding: .utf8) ?? "No additional details"
+            APIRequestLogger.log("Request failed with status code: \(httpResponse.statusCode), message: \(message)", level: .error)
+            throw APIError.httpError(statusCode: httpResponse.statusCode, message: message)
         }
-        
-        APIRequestLogger.log("End request: \(requestURLString)")
         
         return data
     }
