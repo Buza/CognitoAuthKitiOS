@@ -66,23 +66,26 @@ public struct APIRequest: Sendable, APIExecutor {
                 APIRequestLogger.log("Request body: \(bodyString)")
             }
         }
-        
+
         do {
             let idToken = try await tokenProvider.getIdToken()
             request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
-            APIRequestLogger.log("Authorization token: Bearer \(idToken)")
+            APIRequestLogger.log("Authorization token: <REDACTED>")
         } catch {
             APIRequestLogger.log("Authorization token is missing: \(error.localizedDescription)", level: .error)
             throw APIError.authenticationFailed(error)
         }
-        
+
         APIRequestLogger.log("Executing \(payload.method.rawValue) request to \(url.absoluteString)")
         if let headers = request.allHTTPHeaderFields {
-            APIRequestLogger.log("Request headers: \(headers)")
+            let redactedHeaders = Dictionary(uniqueKeysWithValues: headers.map { key, value in
+                (key, key.lowercased() == "authorization" ? "<REDACTED>" : value)
+            })
+            APIRequestLogger.log("Request headers: \(redactedHeaders)")
         }
-        
+
         let (data, response) = try await URLSession.shared.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             APIRequestLogger.log("Invalid response received.", level: .error)
             throw APIError.networkError(URLError(.badServerResponse))
