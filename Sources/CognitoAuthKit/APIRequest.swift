@@ -63,42 +63,42 @@ public struct APIRequest: Sendable, APIExecutor {
         if let body = payload.body {
             request.httpBody = body
             if let bodyString = String(data: body, encoding: .utf8) {
-                APIRequestLogger.log("Request body: \(bodyString)")
+                APIRequestLogger.log("[\(payload.path)] Request body: \(bodyString)")
             }
         }
 
         do {
             let idToken = try await tokenProvider.getIdToken()
             request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
-            APIRequestLogger.log("Authorization token: <REDACTED>")
+            APIRequestLogger.log("[\(payload.path)] Authorization token: <REDACTED>")
         } catch {
-            APIRequestLogger.log("Authorization token is missing: \(error.localizedDescription)", level: .error)
+            APIRequestLogger.log("[\(payload.path)] Authorization token is missing: \(error.localizedDescription)", level: .error)
             throw APIError.authenticationFailed(error)
         }
 
-        APIRequestLogger.log("Executing \(payload.method.rawValue) request to \(url.absoluteString)")
+        APIRequestLogger.log("[\(payload.path)] Executing \(payload.method.rawValue) request to \(url.absoluteString)")
         if let headers = request.allHTTPHeaderFields {
             let redactedHeaders = Dictionary(uniqueKeysWithValues: headers.map { key, value in
                 (key, key.lowercased() == "authorization" ? "<REDACTED>" : value)
             })
-            APIRequestLogger.log("Request headers: \(redactedHeaders)")
+            APIRequestLogger.log("[\(payload.path)] Request headers: \(redactedHeaders)")
         }
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            APIRequestLogger.log("Invalid response received.", level: .error)
+            APIRequestLogger.log("[\(payload.path)] Invalid response received.", level: .error)
             throw APIError.networkError(URLError(.badServerResponse))
         }
         
-        APIRequestLogger.log("Response status code: \(httpResponse.statusCode)")
+        APIRequestLogger.log("[\(payload.path)] Response status code: \(httpResponse.statusCode)")
         if let responseString = String(data: data, encoding: .utf8) {
-            APIRequestLogger.log("Response body: \(responseString)")
+            APIRequestLogger.log("[\(payload.path)] Response body: \(responseString)")
         }
         
         guard (200...299).contains(httpResponse.statusCode) else {
             let message = String(data: data, encoding: .utf8) ?? "No additional details"
-            APIRequestLogger.log("Request failed with status code: \(httpResponse.statusCode), message: \(message)", level: .error)
+            APIRequestLogger.log("[\(payload.path)] Request failed with status code: \(httpResponse.statusCode), message: \(message)", level: .error)
             throw APIError.httpError(statusCode: httpResponse.statusCode, message: message)
         }
         
