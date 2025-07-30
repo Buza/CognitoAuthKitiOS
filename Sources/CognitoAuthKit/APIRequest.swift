@@ -27,12 +27,12 @@ struct APIRequestLogger {
 
 public struct APIRequest: Sendable, APIExecutor {
     public let baseURL: URL
-    public let tokenProvider: CognitoIdTokenProvider
+    public let tokenProvider: CognitoIdTokenProvider?
     public let additionalHeaders: [String: String]
     
     public init(
         baseURL: URL,
-        tokenProvider: CognitoIdTokenProvider,
+        tokenProvider: CognitoIdTokenProvider? = nil,
         additionalHeaders: [String: String] = [:]
     ) {
         self.baseURL = baseURL
@@ -67,13 +67,17 @@ public struct APIRequest: Sendable, APIExecutor {
             }
         }
 
-        do {
-            let idToken = try await tokenProvider.getIdToken()
-            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
-            APIRequestLogger.log("[\(payload.path)] Authorization token: <REDACTED>")
-        } catch {
-            APIRequestLogger.log("[\(payload.path)] Authorization token is missing: \(error.localizedDescription)", level: .error)
-            throw APIError.authenticationFailed(error)
+        if let tokenProvider = tokenProvider {
+            do {
+                let idToken = try await tokenProvider.getIdToken()
+                request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+                APIRequestLogger.log("[\(payload.path)] Authorization token: <REDACTED>")
+            } catch {
+                APIRequestLogger.log("[\(payload.path)] Authorization token is missing: \(error.localizedDescription)", level: .error)
+                throw APIError.authenticationFailed(error)
+            }
+        } else {
+            APIRequestLogger.log("[\(payload.path)] No authorization token provided (unauthenticated request)")
         }
 
         APIRequestLogger.log("[\(payload.path)] Executing \(payload.method.rawValue) request to \(url.absoluteString)")
