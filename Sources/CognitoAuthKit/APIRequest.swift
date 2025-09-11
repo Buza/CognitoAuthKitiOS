@@ -96,10 +96,7 @@ public struct APIRequest: Sendable, APIExecutor {
         }
         
         APIRequestLogger.log("[\(payload.path)] Response status code: \(httpResponse.statusCode)")
-        if let responseString = String(data: data, encoding: .utf8) {
-            APIRequestLogger.log("[\(payload.path)] Response body: \(responseString)")
-        }
-        
+
         guard (200...299).contains(httpResponse.statusCode) else {
             let message = String(data: data, encoding: .utf8) ?? "No additional details"
             APIRequestLogger.log("[\(payload.path)] Request failed with status code: \(httpResponse.statusCode), message: \(message)", level: .error)
