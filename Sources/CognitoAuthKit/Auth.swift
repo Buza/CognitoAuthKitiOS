@@ -580,7 +580,22 @@ extension Auth {
             return false
         }
 
-        let user = userPool.currentUser() ?? userPool.getUser()
+        let username: String
+        do {
+            username = try JWTParser.extractUsername(from: idToken)
+            AuthLogger.log("Extracted username from JWT: \(username)")
+        } catch {
+            do {
+                let subject = try JWTParser.extractSubject(from: idToken)
+                username = subject
+                AuthLogger.log("Using subject as username: \(username)")
+            } catch {
+                AuthLogger.log("Failed to extract username or subject from ID token: \(error.localizedDescription)", level: .error)
+                throw error
+            }
+        }
+
+        let user = userPool.getUser(username)
 
         await sessionStore?.setCognitoTokens(
             accessToken: accessToken,
@@ -599,7 +614,9 @@ extension Auth {
             )
         }
 
-        AuthLogger.log("Successfully signed in with external Cognito tokens")
+        userPool.delegate = AuthCoordinator(username: username, password: nil)
+
+        AuthLogger.log("Successfully signed in with external Cognito tokens for user: \(username)")
         return true
     }
 }
