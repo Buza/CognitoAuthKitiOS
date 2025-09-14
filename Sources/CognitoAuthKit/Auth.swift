@@ -7,6 +7,7 @@
 
 import BLog
 import AuthAPICore
+import AuthenticationServices
 import AWSCognitoIdentityProvider
 
 struct AuthLogger {
@@ -81,7 +82,8 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     private let lock = NSLock()
     var authCoordinator: AuthCoordinator?
     private var sessionStore: SessionStore?
-    private var appleSignInHandler: AppleSignInHandler?
+    @available(iOS 13.0, *)
+    private var appleSignInManager: AppleSignInManager?
     private let poolClientId: String
 
     public init(region: AWSRegionType = .USEast1, poolClientId: String, poolId: String) {
@@ -543,44 +545,26 @@ extension Auth: CognitoIdTokenProvider {
 }
 
 extension Auth {
-    public func configureAppleSignIn(cognitoDomain: String, redirectUri: String = "https://bourbon-bro.com/auth/callback") {
-        self.appleSignInHandler = AppleSignInHandler(
-            cognitoDomain: cognitoDomain,
-            clientId: poolClientId,
-            redirectUri: redirectUri
-        )
-        AuthLogger.log("Configured Apple Sign In with domain: \(cognitoDomain)")
+    @available(iOS 13.0, *)
+    public func configureAppleSignIn() {
+        self.appleSignInManager = AppleSignInManager()
+        AuthLogger.log("Configured native Apple Sign In")
     }
 
+    @available(iOS 13.0, *)
     @discardableResult
-    public func signInWithApple(authorizationCode: Data) async throws -> Bool {
-        guard let handler = appleSignInHandler else {
+    public func signInWithApple(presentationAnchor: ASPresentationAnchor) async throws -> AppleSignInResult {
+        guard let manager = appleSignInManager else {
             AuthLogger.log("Apple Sign In not configured. Call configureAppleSignIn first.", level: .error)
-            throw AppleSignInError.invalidCognitoDomain
+            throw AppleSignInError.notConfigured
         }
 
-        let tokenResponse = try await handler.exchangeAuthorizationCode(authorizationCode)
+        let result = try await manager.signInWithApple(presentationAnchor: presentationAnchor)
 
-        let store = OAuthSessionStore(tokenResponse: tokenResponse)
-        self.sessionStore = store
+        AuthLogger.log("Successfully received Apple Sign In credentials. User: \(result.userSub)")
+        AuthLogger.log("Note: Apple Sign In with Cognito User Pools requires using Cognito Hosted UI or Identity Pools")
+        AuthLogger.log("The identity token can be used with Cognito Identity Pools for federated access")
 
-        AuthLogger.log("Successfully signed in with Apple")
-        return true
-    }
-
-    @discardableResult
-    public func signInWithApple(authorizationCode: String) async throws -> Bool {
-        guard let handler = appleSignInHandler else {
-            AuthLogger.log("Apple Sign In not configured. Call configureAppleSignIn first.", level: .error)
-            throw AppleSignInError.invalidCognitoDomain
-        }
-
-        let tokenResponse = try await handler.exchangeAuthorizationCode(authorizationCode)
-
-        let store = OAuthSessionStore(tokenResponse: tokenResponse)
-        self.sessionStore = store
-
-        AuthLogger.log("Successfully signed in with Apple")
-        return true
+        return result
     }
 }

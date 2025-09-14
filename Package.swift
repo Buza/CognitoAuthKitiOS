@@ -5,7 +5,8 @@ import PackageDescription
 let package = Package(
     name: "CognitoAuthKitiOS",
     platforms: [
-        .iOS(.v14)
+        .iOS(.v14),
+        .macOS(.v13)
     ],
     products: [
         .library(

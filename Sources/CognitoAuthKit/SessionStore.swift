@@ -75,23 +75,4 @@ actor CognitoSessionStore: SessionStore {
     }
 }
 
-actor OAuthSessionStore: SessionStore {
-    private let idToken: String
-    private let accessToken: String
-    private let refreshToken: String
-    private let expiryDate: Date
 
-    init(tokenResponse: CognitoOAuthTokenResponse) {
-        self.idToken = tokenResponse.idToken
-        self.accessToken = tokenResponse.accessToken
-        self.refreshToken = tokenResponse.refreshToken
-        self.expiryDate = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
-    }
-
-    func tokens() async throws -> (id: String, access: String) {
-        if expiryDate.timeIntervalSinceNow <= 60 {
-            AuthLogger.log("OAuth tokens expired or expiring soon. Refresh needed.", level: .warning)
-        }
-        return (idToken, accessToken)
-    }
-}
