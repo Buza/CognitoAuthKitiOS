@@ -17,12 +17,14 @@ enum AuthError: Error {
 
 protocol SessionStore: Actor {
     func tokens() async throws -> (id: String, access: String)
+    func setCognitoTokens(accessToken: String, idToken: String, refreshToken: String, expiresIn: TimeInterval) async
 }
 
 actor CognitoSessionStore: SessionStore {
     private let user: AWSCognitoIdentityUser
     private var sessionTask: Task<AWSCognitoIdentityUserSession, Error>?
-    
+    private var externalTokens: (accessToken: String, idToken: String, refreshToken: String, expiresAt: Date)?
+
     init(user: AWSCognitoIdentityUser) { self.user = user }
     
     func signIn(username: String, password: String) async throws {
@@ -31,12 +33,21 @@ actor CognitoSessionStore: SessionStore {
     }
     
     func tokens() async throws -> (id: String, access: String) {
+        if let tokens = externalTokens, tokens.expiresAt.timeIntervalSinceNow > 60 {
+            return (tokens.idToken, tokens.accessToken)
+        }
+
         let session = try await validSession()
         guard let id = session.idToken?.tokenString,
               let access = session.accessToken?.tokenString else {
             throw AuthError.noTokens
         }
         return (id, access)
+    }
+
+    func setCognitoTokens(accessToken: String, idToken: String, refreshToken: String, expiresIn: TimeInterval) async {
+        let expiresAt = Date().addingTimeInterval(expiresIn)
+        externalTokens = (accessToken, idToken, refreshToken, expiresAt)
     }
     
     private func validSession() async throws -> AWSCognitoIdentityUserSession {

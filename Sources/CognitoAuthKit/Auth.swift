@@ -567,4 +567,39 @@ extension Auth {
 
         return result
     }
+
+    @discardableResult
+    public func signInWithCognitoTokens(
+        accessToken: String,
+        idToken: String,
+        refreshToken: String,
+        expiresIn: TimeInterval = 3600
+    ) async throws -> Bool {
+        guard let userPool = AWSCognitoIdentityUserPool(forKey: "UserPool") else {
+            AuthLogger.log("No user pool found.", level: .error)
+            return false
+        }
+
+        let user = userPool.currentUser() ?? userPool.getUser()
+
+        await sessionStore?.setCognitoTokens(
+            accessToken: accessToken,
+            idToken: idToken,
+            refreshToken: refreshToken,
+            expiresIn: expiresIn
+        )
+
+        if sessionStore == nil {
+            createSessionStore(for: user)
+            await sessionStore?.setCognitoTokens(
+                accessToken: accessToken,
+                idToken: idToken,
+                refreshToken: refreshToken,
+                expiresIn: expiresIn
+            )
+        }
+
+        AuthLogger.log("Successfully signed in with external Cognito tokens")
+        return true
+    }
 }
