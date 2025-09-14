@@ -543,10 +543,10 @@ extension Auth: CognitoIdTokenProvider {
 }
 
 extension Auth {
-    public func configureAppleSignIn(cognitoDomain: String, redirectUri: String = "https://bourbon-bro.com/auth/callback") {
+    public func configureAppleSignIn(cognitoDomain: String, appleServiceId: String, redirectUri: String = "https://bourbon-bro.com/auth/callback") {
         self.appleSignInHandler = AppleSignInHandler(
             cognitoDomain: cognitoDomain,
-            clientId: poolClientId,
+            clientId: appleServiceId,
             redirectUri: redirectUri
         )
         AuthLogger.log("Configured Apple Sign In with domain: \(cognitoDomain)")
