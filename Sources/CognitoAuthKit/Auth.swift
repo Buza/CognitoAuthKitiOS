@@ -85,6 +85,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     @available(iOS 13.0, *)
     private var appleSignInManager: AppleSignInManager?
     private let poolClientId: String
+    private var externalSessionUsername: String?
 
     public init(region: AWSRegionType = .USEast1, poolClientId: String, poolId: String) {
         self.poolClientId = poolClientId
@@ -114,8 +115,19 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     }
     
     public func isUserSignedIn() async -> Bool {
+        // First check if we have valid external tokens
+        if externalSessionUsername != nil, let store = sessionStore {
+            do {
+                let _ = try await store.tokens()
+                return true
+            } catch {
+                // External tokens invalid or expired, continue to check SDK session
+            }
+        }
+
+        // Check SDK-managed session
         guard let user = currentUser() else { return false }
-        
+
         return await withCheckedContinuation { continuation in
             user.getSession().continueWith { task in
                 if let session = task.result,
@@ -135,7 +147,17 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         AWSCognitoIdentityUserPool(forKey: "UserPool")?.getUser(username)
     }
     private func currentUser() -> AWSCognitoIdentityUser? {
-        AWSCognitoIdentityUserPool(forKey: "UserPool")?.currentUser()
+        // First check SDK's current user
+        if let sdkUser = AWSCognitoIdentityUserPool(forKey: "UserPool")?.currentUser() {
+            return sdkUser
+        }
+
+        // If no SDK user but we have an external session, return that user
+        if let username = externalSessionUsername {
+            return AWSCognitoIdentityUserPool(forKey: "UserPool")?.getUser(username)
+        }
+
+        return nil
     }
     
     public var cognitoUserId: String? {
@@ -146,6 +168,12 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     }
     
     public var username: String? {
+        // If we have an external session username, return it
+        if let externalUsername = externalSessionUsername {
+            return externalUsername
+        }
+
+        // Otherwise check SDK's current user
         guard let user = currentUser() else {
             return nil
         }
@@ -381,16 +409,17 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         guard let user = currentUser() else {
             return false
         }
-        
+
         user.signOut()
-        
+
         self.sessionStore = nil
         self.authCoordinator = nil
-        
+        self.externalSessionUsername = nil
+
         AWSCognitoIdentityUserPool(forKey: "UserPool")?.clearLastKnownUser()
-        
+
         AWSCognitoIdentityUserPool(forKey: "UserPool")?.currentUser()?.signOut()
-        
+
         AuthLogger.log("User signed out and local state cleared.")
         return true
     }
@@ -596,6 +625,9 @@ extension Auth {
         }
 
         let user = userPool.getUser(username)
+
+        // Store the username for external session management
+        externalSessionUsername = username
 
         await sessionStore?.setCognitoTokens(
             accessToken: accessToken,
