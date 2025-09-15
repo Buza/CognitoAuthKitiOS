@@ -202,12 +202,18 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     }
 
     public var authMethod: AuthMethod {
+        let method: AuthMethod
         if externalSessionUsername != nil {
-            return .apple
+            method = .apple
+            AuthLogger.log("Auth method detected: Apple (externalSessionUsername: \(externalSessionUsername!))")
         } else if currentUser() != nil {
-            return .username
+            method = .username
+            AuthLogger.log("Auth method detected: Username (currentUser exists)")
+        } else {
+            method = .unknown
+            AuthLogger.log("Auth method detected: Unknown (no session found)")
         }
-        return .unknown
+        return method
     }
     
     @discardableResult
@@ -413,6 +419,12 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     @discardableResult
     public func signIn(username: String, password: String) async throws -> Bool {
         guard let user = cognitoUser(username: username) else { return false }
+
+        // Clear any external session data since this is a username/password sign-in
+        externalSessionUsername = nil
+        UserDefaults.standard.removeObject(forKey: "CognitoAuthKit.externalSessionUsername")
+        CognitoSessionStore.clearExternalTokens(keychainKey: "CognitoAuthKit.externalTokens")
+
         setAuthCoordinator(username: username, password: password)
         
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
