@@ -93,17 +93,27 @@ final public class Auth: ObservableObject, @unchecked Sendable {
             region: region,
             credentialsProvider: nil
         )
-        
+
         let userPoolConfiguration = AWSCognitoIdentityUserPoolConfiguration(
             clientId: poolClientId, clientSecret: nil,
             poolId: poolId
         )
-        
+
         AWSCognitoIdentityUserPool.register(
             with: serviceConfiguration,
             userPoolConfiguration: userPoolConfiguration,
             forKey: "UserPool"
         )
+
+        // Restore external session username if it exists
+        self.externalSessionUsername = UserDefaults.standard.string(forKey: "CognitoAuthKit.externalSessionUsername")
+
+        // If we have an external session username, restore the session store
+        if let username = self.externalSessionUsername,
+           let userPool = AWSCognitoIdentityUserPool(forKey: "UserPool") {
+            let user = userPool.getUser(username)
+            self.createSessionStore(for: user)
+        }
     }
     
     private func getCognitoUser(username: String) -> AWSCognitoIdentityUser? {
@@ -412,9 +422,13 @@ final public class Auth: ObservableObject, @unchecked Sendable {
 
         user.signOut()
 
+        // Clear external tokens from Keychain if they exist
+        CognitoSessionStore.clearExternalTokens(keychainKey: "CognitoAuthKit.externalTokens")
+
         self.sessionStore = nil
         self.authCoordinator = nil
         self.externalSessionUsername = nil
+        UserDefaults.standard.removeObject(forKey: "CognitoAuthKit.externalSessionUsername")
 
         AWSCognitoIdentityUserPool(forKey: "UserPool")?.clearLastKnownUser()
 
@@ -628,6 +642,7 @@ extension Auth {
 
         // Store the username for external session management
         externalSessionUsername = username
+        UserDefaults.standard.set(username, forKey: "CognitoAuthKit.externalSessionUsername")
 
         await sessionStore?.setCognitoTokens(
             accessToken: accessToken,
