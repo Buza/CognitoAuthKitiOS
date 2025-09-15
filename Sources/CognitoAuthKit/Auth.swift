@@ -448,25 +448,27 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     
     @discardableResult
     public func signOut() -> Bool {
-        guard let user = currentUser() else {
-            return false
-        }
-
-        user.signOut()
-
+        // Always clear all session data, regardless of current user state
         // Clear external tokens from Keychain if they exist
         CognitoSessionStore.clearExternalTokens(keychainKey: "CognitoAuthKit.externalTokens")
 
-        self.sessionStore = nil
-        self.authCoordinator = nil
+        // Clear external session data
         self.externalSessionUsername = nil
         UserDefaults.standard.removeObject(forKey: "CognitoAuthKit.externalSessionUsername")
 
-        AWSCognitoIdentityUserPool(forKey: "UserPool")?.clearLastKnownUser()
+        // Clear internal session data
+        self.sessionStore = nil
+        self.authCoordinator = nil
 
+        // Clear AWS SDK session data
+        if let user = currentUser() {
+            user.signOut()
+        }
+
+        AWSCognitoIdentityUserPool(forKey: "UserPool")?.clearLastKnownUser()
         AWSCognitoIdentityUserPool(forKey: "UserPool")?.currentUser()?.signOut()
 
-        AuthLogger.log("User signed out and local state cleared.")
+        AuthLogger.log("User signed out and all session data cleared.")
         return true
     }
     
