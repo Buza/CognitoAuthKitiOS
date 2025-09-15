@@ -77,6 +77,12 @@ final class PasswordAuthHandler: NSObject, AWSCognitoIdentityPasswordAuthenticat
     }
 }
 
+public enum AuthMethod {
+    case username
+    case apple
+    case unknown
+}
+
 final public class Auth: ObservableObject, @unchecked Sendable {
 
     private let lock = NSLock()
@@ -188,6 +194,20 @@ final public class Auth: ObservableObject, @unchecked Sendable {
             return nil
         }
         return user.username
+    }
+
+    public var isAppleSignIn: Bool {
+        // User signed in with Apple if we have an external session username
+        return externalSessionUsername != nil
+    }
+
+    public var authMethod: AuthMethod {
+        if externalSessionUsername != nil {
+            return .apple
+        } else if currentUser() != nil {
+            return .username
+        }
+        return .unknown
     }
     
     @discardableResult
