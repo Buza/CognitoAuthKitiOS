@@ -9,6 +9,12 @@ import Foundation
 import BLog
 import AuthAPICore
 
+public enum APIRequestEnvironment : String, Sendable  {
+    case production
+    case staging
+    case development
+}
+
 struct APIRequestLogger {
     static let shared = BLog(subsystem: "com.buzamoto.cognitoauth",
                              category: "APIRequest",
@@ -29,15 +35,18 @@ public struct APIRequest: Sendable, APIExecutor {
     public let baseURL: URL
     public let tokenProvider: CognitoIdTokenProvider?
     public let additionalHeaders: [String: String]
+    private let apiEnvironment : APIRequestEnvironment
     
     public init(
         baseURL: URL,
         tokenProvider: CognitoIdTokenProvider? = nil,
-        additionalHeaders: [String: String] = [:]
+        additionalHeaders: [String: String] = [:],
+        apiRequestEnvironment: APIRequestEnvironment = .production
     ) {
         self.baseURL = baseURL
         self.tokenProvider = tokenProvider
         self.additionalHeaders = additionalHeaders
+        self.apiEnvironment = apiRequestEnvironment
     }
     
     private func buildURL(path: String, queryItems: [URLQueryItem]?) -> URL? {
@@ -63,7 +72,7 @@ public struct APIRequest: Sendable, APIExecutor {
         if let body = payload.body {
             request.httpBody = body
             if let bodyString = String(data: body, encoding: .utf8) {
-                APIRequestLogger.log("[\(payload.path)] Request body: \(bodyString)")
+                APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Request body: \(bodyString)")
             }
         }
 
@@ -71,35 +80,35 @@ public struct APIRequest: Sendable, APIExecutor {
             do {
                 let idToken = try await tokenProvider.getIdToken()
                 request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
-                APIRequestLogger.log("[\(payload.path)] Authorization token: <REDACTED>")
+                APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Authorization token: <REDACTED>")
             } catch {
-                APIRequestLogger.log("[\(payload.path)] Authorization token is missing: \(error.localizedDescription)", level: .error)
+                APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Authorization token is missing: \(error.localizedDescription)", level: .error)
                 throw APIError.authenticationFailed(error)
             }
         } else {
-            APIRequestLogger.log("[\(payload.path)] No authorization token provided (unauthenticated request)")
+            APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] No authorization token provided (unauthenticated request)")
         }
 
-        APIRequestLogger.log("[\(payload.path)] Executing \(payload.method.rawValue) request to \(url.absoluteString)")
+        APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Executing \(payload.method.rawValue) request to \(url.absoluteString)")
         if let headers = request.allHTTPHeaderFields {
             let redactedHeaders = Dictionary(uniqueKeysWithValues: headers.map { key, value in
                 (key, key.lowercased() == "authorization" ? "<REDACTED>" : value)
             })
-            APIRequestLogger.log("[\(payload.path)] Request headers: \(redactedHeaders)")
+            APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Request headers: \(redactedHeaders)")
         }
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            APIRequestLogger.log("[\(payload.path)] Invalid response received.", level: .error)
+            APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Invalid response received.", level: .error)
             throw APIError.networkError(URLError(.badServerResponse))
         }
         
-        APIRequestLogger.log("[\(payload.path)] Response status code: \(httpResponse.statusCode)")
+        APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Response status code: \(httpResponse.statusCode)")
 
         guard (200...299).contains(httpResponse.statusCode) else {
             let message = String(data: data, encoding: .utf8) ?? "No additional details"
-            APIRequestLogger.log("[\(payload.path)] Request failed with status code: \(httpResponse.statusCode), message: \(message)", level: .error)
+            APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Request failed with status code: \(httpResponse.statusCode), message: \(message)", level: .error)
             throw APIError.httpError(statusCode: httpResponse.statusCode, message: message)
         }
         
