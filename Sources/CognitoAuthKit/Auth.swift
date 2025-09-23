@@ -225,22 +225,22 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
             user.getSession().continueWith { task in
                 if let error = task.error {
-                    AuthLogger.log("Error calling API: \(error.localizedDescription)", level: .error)
+                    AuthLogger.log("[refreshSessionIfNeeded] \(error.localizedDescription)", level: .error)
                     continuation.resume(returning: false)
                 } else if let session = task.result, let _ = session.refreshToken?.tokenString {
                     user.getSession().continueWith { refreshTask in
                         if let refreshError = refreshTask.error {
-                            AuthLogger.log("Failed to refresh session: \(refreshError.localizedDescription)", level: .error)
+                            AuthLogger.log("[refreshSessionIfNeeded] Failed to refresh session: \(refreshError.localizedDescription)", level: .error)
                             continuation.resume(returning: false)
                         } else {
                             self.createSessionStore(for: user)
-                            AuthLogger.log("Session refreshed successfully")
+                            AuthLogger.log("[refreshSessionIfNeeded] Session refreshed successfully")
                             continuation.resume(returning: true)
                         }
                         return nil
                     }
                 } else {
-                    AuthLogger.log("No refresh token available", level: .error)
+                    AuthLogger.log("[refreshSessionIfNeeded] No refresh token available", level: .error)
                     continuation.resume(returning: false)
                 }
                 return nil
