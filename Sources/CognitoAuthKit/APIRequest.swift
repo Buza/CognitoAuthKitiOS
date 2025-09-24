@@ -54,6 +54,26 @@ public struct APIRequest: Sendable, APIExecutor {
         components?.queryItems = queryItems
         return components?.url
     }
+
+    private func redactSensitiveFields(in jsonString: String) -> String {
+        guard let jsonData = jsonString.data(using: .utf8),
+              let jsonObject = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] else {
+            return jsonString
+        }
+
+        var mutableJsonObject = jsonObject
+
+        if mutableJsonObject["receipt_data"] != nil {
+            mutableJsonObject["receipt_data"] = "<REDACTED>"
+        }
+
+        guard let redactedData = try? JSONSerialization.data(withJSONObject: mutableJsonObject, options: []),
+              let redactedString = String(data: redactedData, encoding: .utf8) else {
+            return jsonString
+        }
+
+        return redactedString
+    }
     
     public func execute(request payload: APIRequestPayload) async throws -> Data {
         guard let url = buildURL(path: payload.path, queryItems: payload.queryItems) else {
@@ -72,7 +92,8 @@ public struct APIRequest: Sendable, APIExecutor {
         if let body = payload.body {
             request.httpBody = body
             if let bodyString = String(data: body, encoding: .utf8) {
-                APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Request body: \(bodyString)")
+                let redactedBodyString = redactSensitiveFields(in: bodyString)
+                APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Request body: \(redactedBodyString)")
             }
         }
 
