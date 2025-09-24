@@ -67,6 +67,10 @@ public struct APIRequest: Sendable, APIExecutor {
             mutableJsonObject["receipt_data"] = "<REDACTED>"
         }
 
+        if mutableJsonObject["receipt"] != nil {
+            mutableJsonObject["receipt"] = "<REDACTED>"
+        }
+
         guard let redactedData = try? JSONSerialization.data(withJSONObject: mutableJsonObject, options: []),
               let redactedString = String(data: redactedData, encoding: .utf8) else {
             return jsonString
