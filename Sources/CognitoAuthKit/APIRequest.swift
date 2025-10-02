@@ -9,6 +9,20 @@ import Foundation
 import BLog
 import AuthAPICore
 
+extension Data {
+    var prettyPrintedJSONString: String? {
+        guard
+            let object = try? JSONSerialization.jsonObject(with: self, options: []),
+            JSONSerialization.isValidJSONObject(object),
+            let prettyData = try? JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted]),
+            let prettyString = String(data: prettyData, encoding: .utf8)
+        else {
+            return nil
+        }
+        return prettyString
+    }
+}
+
 public enum APIRequestEnvironment : String, Sendable  {
     case production
     case staging
@@ -124,6 +138,8 @@ public struct APIRequest: Sendable, APIExecutor {
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
+        print(data.prettyPrintedJSONString)
+        
         guard let httpResponse = response as? HTTPURLResponse else {
             APIRequestLogger.log("[\(apiEnvironment.rawValue)] : [\(payload.path)] Invalid response received.", level: .error)
             throw APIError.networkError(URLError(.badServerResponse))
