@@ -519,7 +519,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
             completion(false)
             return
         }
-        
+
         user.confirmSignUp(confirmationCode, forceAliasCreation: true).continueWith { task in
             if let error = task.error {
                 AuthLogger.log("Error confirming sign-up: \(error.localizedDescription)", level: .error)
@@ -527,6 +527,45 @@ final public class Auth: ObservableObject, @unchecked Sendable {
             } else {
                 AuthLogger.log("User confirmed successfully")
                 completion(true)
+            }
+            return nil
+        }
+    }
+
+    public func resendConfirmationCode(username: String) async throws {
+        guard let user = getCognitoUser(username: username) else {
+            throw NSError(domain: "AuthError", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "User not found in user pool"])
+        }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            user.resendConfirmationCode().continueWith { task in
+                if let error = task.error {
+                    AuthLogger.log("Error resending confirmation code: \(error.localizedDescription)", level: .error)
+                    continuation.resume(throwing: error)
+                } else {
+                    AuthLogger.log("Confirmation code resent successfully")
+                    continuation.resume(returning: ())
+                }
+                return nil
+            }
+        }
+    }
+
+    public func resendConfirmationCode(username: String, completion: @escaping (Bool, Error?) -> Void) {
+        guard let user = getCognitoUser(username: username) else {
+            completion(false, NSError(domain: "AuthError", code: 1,
+                                      userInfo: [NSLocalizedDescriptionKey: "User not found in user pool"]))
+            return
+        }
+
+        user.resendConfirmationCode().continueWith { task in
+            if let error = task.error {
+                AuthLogger.log("Error resending confirmation code: \(error.localizedDescription)", level: .error)
+                completion(false, error)
+            } else {
+                AuthLogger.log("Confirmation code resent successfully")
+                completion(true, nil)
             }
             return nil
         }
