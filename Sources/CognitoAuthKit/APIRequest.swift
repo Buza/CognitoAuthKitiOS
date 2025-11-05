@@ -27,6 +27,7 @@ public enum APIRequestEnvironment : String, Sendable  {
     case production
     case staging
     case development
+    case tastingbro
 }
 
 struct APIRequestLogger {
