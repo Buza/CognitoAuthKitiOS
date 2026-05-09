@@ -42,11 +42,21 @@ actor CognitoSessionStore: SessionStore {
     private var sessionTask: Task<AWSCognitoIdentityUserSession, Error>?
     private var externalTokens: (accessToken: String, idToken: String, refreshToken: String, expiresAt: Date)?
     private let keychainKey = "CognitoAuthKit.externalTokens"
+    private let keychainAccessGroup: String?
 
-    init(user: AWSCognitoIdentityUser) {
+    init(user: AWSCognitoIdentityUser, keychainAccessGroup: String? = nil) {
         self.user = user
+        self.keychainAccessGroup = keychainAccessGroup
+
+        // Migrate tokens from app-scoped keychain to shared group if needed
+        if let group = keychainAccessGroup {
+            if KeychainHelper.migrateToAccessGroup(for: keychainKey, accessGroup: group) {
+                SessionLogger.log("Migrated external tokens to shared keychain group")
+            }
+        }
+
         // Try to restore external tokens from Keychain
-        self.externalTokens = Self.loadExternalTokens(keychainKey: keychainKey)
+        self.externalTokens = Self.loadExternalTokens(keychainKey: keychainKey, accessGroup: keychainAccessGroup)
     }
     
     func signIn(username: String, password: String) async throws {
@@ -71,7 +81,7 @@ actor CognitoSessionStore: SessionStore {
             // If refresh failed, clear external tokens and fall through to native session
             SessionLogger.log("External token refresh failed, clearing tokens", level: .warning)
             externalTokens = nil
-            Self.clearExternalTokens(keychainKey: keychainKey)
+            Self.clearExternalTokens(keychainKey: keychainKey, accessGroup: keychainAccessGroup)
         }
 
         // Fall back to native Cognito session
@@ -93,7 +103,8 @@ actor CognitoSessionStore: SessionStore {
             idToken: idToken,
             refreshToken: refreshToken,
             expiresAt: expiresAt,
-            keychainKey: keychainKey
+            keychainKey: keychainKey,
+            accessGroup: keychainAccessGroup
         )
     }
 
@@ -102,7 +113,8 @@ actor CognitoSessionStore: SessionStore {
         idToken: String,
         refreshToken: String,
         expiresAt: Date,
-        keychainKey: String
+        keychainKey: String,
+        accessGroup: String? = nil
     ) {
         let tokenData: [String: Any] = [
             "accessToken": accessToken,
@@ -113,16 +125,16 @@ actor CognitoSessionStore: SessionStore {
 
         do {
             let data = try JSONSerialization.data(withJSONObject: tokenData)
-            try KeychainHelper.save(data, for: keychainKey)
+            try KeychainHelper.save(data, for: keychainKey, accessGroup: accessGroup)
         } catch {
             // Log error but don't fail - session will work until app restart
             print("Failed to save external tokens to Keychain: \(error)")
         }
     }
 
-    private static func loadExternalTokens(keychainKey: String) -> (accessToken: String, idToken: String, refreshToken: String, expiresAt: Date)? {
+    private static func loadExternalTokens(keychainKey: String, accessGroup: String? = nil) -> (accessToken: String, idToken: String, refreshToken: String, expiresAt: Date)? {
         do {
-            let data = try KeychainHelper.load(for: keychainKey)
+            let data = try KeychainHelper.load(for: keychainKey, accessGroup: accessGroup)
             guard let tokenData = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let accessToken = tokenData["accessToken"] as? String,
                   let idToken = tokenData["idToken"] as? String,
@@ -139,8 +151,8 @@ actor CognitoSessionStore: SessionStore {
         }
     }
 
-    static func clearExternalTokens(keychainKey: String) {
-        KeychainHelper.delete(for: keychainKey)
+    static func clearExternalTokens(keychainKey: String, accessGroup: String? = nil) {
+        KeychainHelper.delete(for: keychainKey, accessGroup: accessGroup)
     }
 
     private func refreshExternalTokens(refreshToken: String) async throws -> (accessToken: String, idToken: String)? {
@@ -192,7 +204,8 @@ actor CognitoSessionStore: SessionStore {
                 idToken: newIdToken,
                 refreshToken: refreshToken,
                 expiresAt: expiresAt,
-                keychainKey: keychainKey
+                keychainKey: keychainKey,
+                accessGroup: keychainAccessGroup
             )
 
             SessionLogger.log("Successfully refreshed external tokens")

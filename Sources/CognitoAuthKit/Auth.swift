@@ -92,9 +92,11 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     private var appleSignInManager: AppleSignInManager?
     private let poolClientId: String
     private var externalSessionUsername: String?
+    private let keychainAccessGroup: String?
 
-    public init(region: AWSRegionType = .USEast1, poolClientId: String, poolId: String) {
+    public init(region: AWSRegionType = .USEast1, poolClientId: String, poolId: String, keychainAccessGroup: String? = nil) {
         self.poolClientId = poolClientId
+        self.keychainAccessGroup = keychainAccessGroup
         let serviceConfiguration = AWSServiceConfiguration(
             region: region,
             credentialsProvider: nil
@@ -297,7 +299,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     }
     
     private func createSessionStore(for user: AWSCognitoIdentityUser) {
-        let store = CognitoSessionStore(user: user)
+        let store = CognitoSessionStore(user: user, keychainAccessGroup: keychainAccessGroup)
         self.sessionStore = store
     }
     
@@ -423,7 +425,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         // Clear any external session data since this is a username/password sign-in
         externalSessionUsername = nil
         UserDefaults.standard.removeObject(forKey: "CognitoAuthKit.externalSessionUsername")
-        CognitoSessionStore.clearExternalTokens(keychainKey: "CognitoAuthKit.externalTokens")
+        CognitoSessionStore.clearExternalTokens(keychainKey: "CognitoAuthKit.externalTokens", accessGroup: keychainAccessGroup)
 
         setAuthCoordinator(username: username, password: password)
         
@@ -450,7 +452,7 @@ final public class Auth: ObservableObject, @unchecked Sendable {
     public func signOut() -> Bool {
         // Always clear all session data, regardless of current user state
         // Clear external tokens from Keychain if they exist
-        CognitoSessionStore.clearExternalTokens(keychainKey: "CognitoAuthKit.externalTokens")
+        CognitoSessionStore.clearExternalTokens(keychainKey: "CognitoAuthKit.externalTokens", accessGroup: keychainAccessGroup)
 
         // Clear external session data
         self.externalSessionUsername = nil
