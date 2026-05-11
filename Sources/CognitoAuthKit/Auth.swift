@@ -116,10 +116,12 @@ final public class Auth: ObservableObject, @unchecked Sendable {
         // Restore external session username if it exists
         self.externalSessionUsername = UserDefaults.standard.string(forKey: "CognitoAuthKit.externalSessionUsername")
 
-        // If we have an external session username, restore the session store
+        // Restore the session store — prefer external session, fall back to SDK's current user
         if let username = self.externalSessionUsername,
            let userPool = AWSCognitoIdentityUserPool(forKey: "UserPool") {
             let user = userPool.getUser(username)
+            self.createSessionStore(for: user)
+        } else if let user = AWSCognitoIdentityUserPool(forKey: "UserPool")?.currentUser() {
             self.createSessionStore(for: user)
         }
     }

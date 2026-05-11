@@ -90,6 +90,23 @@ actor CognitoSessionStore: SessionStore {
               let access = session.accessToken?.tokenString else {
             throw AuthError.noTokens
         }
+
+        // Persist native session tokens to shared keychain so other apps can read them
+        if keychainAccessGroup != nil {
+            let refreshToken = session.refreshToken?.tokenString ?? ""
+            let expiresAt = session.expirationTime ?? Date().addingTimeInterval(3600)
+            Self.saveExternalTokens(
+                accessToken: access,
+                idToken: id,
+                refreshToken: refreshToken,
+                expiresAt: expiresAt,
+                keychainKey: keychainKey,
+                accessGroup: keychainAccessGroup
+            )
+            externalTokens = (access, id, refreshToken, expiresAt)
+            SessionLogger.log("Persisted native session tokens to shared keychain")
+        }
+
         return (id, access)
     }
 
