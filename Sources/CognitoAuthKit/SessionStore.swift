@@ -74,8 +74,12 @@ actor CognitoSessionStore: SessionStore {
 
             // Tokens expired, try to refresh them
             SessionLogger.log("External tokens expired, attempting refresh")
-            if let refreshedTokens = try await refreshExternalTokens(refreshToken: tokens.refreshToken) {
-                return (refreshedTokens.idToken, refreshedTokens.accessToken)
+            do {
+                if let refreshedTokens = try await refreshExternalTokens(refreshToken: tokens.refreshToken) {
+                    return (refreshedTokens.idToken, refreshedTokens.accessToken)
+                }
+            } catch {
+                SessionLogger.log("External token refresh threw: \(error.localizedDescription)", level: .warning)
             }
 
             // If refresh failed, clear external tokens and fall through to native session
@@ -176,6 +180,14 @@ actor CognitoSessionStore: SessionStore {
         // Get the user pool instance
         guard let userPool = AWSCognitoIdentityUserPool(forKey: "UserPool") else {
             SessionLogger.log("No user pool available for token refresh", level: .error)
+            return nil
+        }
+
+        // Guard: AWSCognitoIdentityProvider.default() throws an NSException if
+        // no default service configuration exists (e.g. in companion apps that
+        // only read shared tokens). Check before calling.
+        guard AWSServiceManager.default().defaultServiceConfiguration != nil else {
+            SessionLogger.log("No default AWS service config — cannot refresh tokens", level: .warning)
             return nil
         }
 
