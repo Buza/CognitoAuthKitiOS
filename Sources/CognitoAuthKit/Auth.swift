@@ -107,6 +107,11 @@ final public class Auth: ObservableObject, @unchecked Sendable {
             poolId: poolId
         )
 
+        // Set as default so AWSCognitoIdentityProvider.default() works for token refresh
+        if AWSServiceManager.default().defaultServiceConfiguration == nil {
+            AWSServiceManager.default().defaultServiceConfiguration = serviceConfiguration
+        }
+
         AWSCognitoIdentityUserPool.register(
             with: serviceConfiguration,
             userPoolConfiguration: userPoolConfiguration,
